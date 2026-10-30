@@ -24,6 +24,10 @@ import kotlinx.coroutines.isActive
 // 33⅓ rpm = 200 grados por segundo
 private const val DEGREES_PER_SECOND = 200f
 
+// Ángulo del brazo en reposo y sobre el disco
+private const val ARM_REST = -55f
+private const val ARM_PLAY = 0f
+
 @Composable
 fun VinylPlayer(
     isPlaying: Boolean,
@@ -31,7 +35,7 @@ fun VinylPlayer(
     modifier: Modifier = Modifier
 ) {
     var discAngle by remember { mutableFloatStateOf(0f) }
-    val armAngle = remember { Animatable(-25f) }
+    val armAngle = remember { Animatable(ARM_REST) }
 
     // Gira el disco solo mientras suena
     LaunchedEffect(isPlaying) {
@@ -51,7 +55,7 @@ fun VinylPlayer(
     // Baja y sube el brazo
     LaunchedEffect(isPlaying) {
         armAngle.animateTo(
-            targetValue = if (isPlaying) 0f else -25f,
+            targetValue = if (isPlaying) ARM_PLAY else ARM_REST,
             animationSpec = tween(durationMillis = 700)
         )
     }
@@ -77,7 +81,7 @@ fun VinylPlayer(
                 style = Stroke(width = r * 0.02f)
             )
 
-            // Surcos finos con distinta intensidad
+            // Surcos finos
             for (i in 0 until 60) {
                 val frac = 0.36f + i * (0.62f / 60f)
                 val alpha = if (i % 3 == 0) 0.22f else 0.07f
@@ -130,13 +134,13 @@ fun VinylPlayer(
                 .fillMaxSize()
                 .graphicsLayer {
                     rotationZ = armAngle.value
-                    transformOrigin = TransformOrigin(0.85f, 0.1f)
+                    transformOrigin = TransformOrigin(0.92f, 0.06f)
                 }
         ) {
             val w = size.width
-            val pivot = Offset(w * 0.85f, w * 0.1f)
-            val tip = Offset(w * 0.55f, w * 0.5f)
-            val needle = Offset(w * 0.515f, w * 0.575f)
+            val pivot = Offset(w * 0.92f, w * 0.06f)
+            val tip = Offset(w * 0.75f, w * 0.27f)
+            val headEnd = Offset(w * 0.735f, w * 0.30f)
 
             // Base del brazo
             drawCircle(color = Color(0xFF2B2B2B), radius = w * 0.075f, center = pivot)
@@ -156,18 +160,19 @@ fun VinylPlayer(
             drawLine(
                 color = Color(0xFF3A3A3A),
                 start = tip,
-                end = Offset(w * 0.52f, w * 0.56f),
+                end = headEnd,
                 strokeWidth = w * 0.045f,
                 cap = StrokeCap.Round
             )
 
-            // Aguja
+            // Aguja sobre los surcos
             drawLine(
                 color = Color(0xFFB0B0B0),
-                start = Offset(w * 0.52f, w * 0.56f),
-                end = needle,
+                start = headEnd,
+                end = Offset(w * 0.735f, w * 0.31f),
                 strokeWidth = w * 0.008f
             )
         }
     }
 }
+
