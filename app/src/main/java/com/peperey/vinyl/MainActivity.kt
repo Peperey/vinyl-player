@@ -35,6 +35,8 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -109,6 +111,8 @@ fun PlayerScreen(tracks: List<Track>) {
     var title by remember { mutableStateOf("Ninguna canción") }
     var artist by remember { mutableStateOf("") }
     var currentIndex by remember { mutableStateOf(-1) }
+    var showCassette by remember { mutableStateOf(false) }
+    var progress by remember { mutableFloatStateOf(0f) }
 
     // Conecta con el servicio de música en segundo plano
     DisposableEffect(Unit) {
@@ -144,6 +148,20 @@ fun PlayerScreen(tracks: List<Track>) {
         onDispose { c.removeListener(listener) }
     }
 
+    // Calcula el avance de la canción para mover la cinta del casete
+    LaunchedEffect(controller) {
+        val c = controller ?: return@LaunchedEffect
+        while (isActive) {
+            val dur = c.duration
+            progress = if (dur > 0) {
+                (c.currentPosition.toFloat() / dur).coerceIn(0f, 1f)
+            } else {
+                0f
+            }
+            delay(250)
+        }
+    }
+
     // Carga la lista de canciones una sola vez en el servicio
     LaunchedEffect(controller, tracks) {
         val c = controller ?: return@LaunchedEffect
@@ -157,11 +175,26 @@ fun PlayerScreen(tracks: List<Track>) {
         modifier = Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        VinylPlayer(
-            isPlaying = isPlaying,
-            label = title,
-            modifier = Modifier.fillMaxWidth(0.7f)
-        )
+        if (showCassette) {
+            CassettePlayer(
+                isPlaying = isPlaying,
+                label = title,
+                progress = progress,
+                modifier = Modifier.fillMaxWidth(0.8f)
+            )
+        } else {
+            VinylPlayer(
+                isPlaying = isPlaying,
+                label = title,
+                modifier = Modifier.fillMaxWidth(0.7f)
+            )
+        }
+
+        Spacer(Modifier.height(8.dp))
+        Button(onClick = { showCassette = !showCassette }) {
+            Text(if (showCassette) "Ver disco" else "Ver casete")
+        }
+
         Spacer(Modifier.height(12.dp))
         Text(title)
         Text(artist)
