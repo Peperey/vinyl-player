@@ -1,27 +1,23 @@
 package com.peperey.vinyl
 
+import android.graphics.Paint
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.isActive
 
@@ -31,6 +27,7 @@ private const val DEGREES_PER_SECOND = 200f
 @Composable
 fun VinylPlayer(
     isPlaying: Boolean,
+    label: String,
     modifier: Modifier = Modifier
 ) {
     var discAngle by remember { mutableFloatStateOf(0f) }
@@ -51,7 +48,7 @@ fun VinylPlayer(
         }
     }
 
-    // Mueve el brazo al empezar y al terminar
+    // Baja y sube el brazo
     LaunchedEffect(isPlaying) {
         armAngle.animateTo(
             targetValue = if (isPlaying) 0f else -25f,
@@ -69,23 +66,65 @@ fun VinylPlayer(
                 .fillMaxSize()
                 .graphicsLayer { rotationZ = discAngle }
         ) {
-            val radius = size.minDimension / 2f
+            val r = size.minDimension / 2f
+            val center = Offset(size.width / 2f, size.height / 2f)
 
-            drawCircle(color = Color(0xFF111111), radius = radius)
+            // Base negra con borde
+            drawCircle(color = Color(0xFF0B0B0B), radius = r)
+            drawCircle(
+                color = Color(0xFF2A2A2A),
+                radius = r * 0.985f,
+                style = Stroke(width = r * 0.02f)
+            )
 
-            for (i in 0 until 18) {
+            // Surcos finos con distinta intensidad
+            for (i in 0 until 60) {
+                val frac = 0.36f + i * (0.62f / 60f)
+                val alpha = if (i % 3 == 0) 0.22f else 0.07f
                 drawCircle(
-                    color = Color(0xFF2A2A2A),
-                    radius = radius * (0.45f + i * 0.028f),
-                    style = Stroke(width = 1.dp.toPx())
+                    color = Color.White.copy(alpha = alpha),
+                    radius = r * frac,
+                    style = Stroke(width = r * 0.004f)
                 )
             }
 
-            drawCircle(color = Color(0xFFC62828), radius = radius * 0.32f)
-            drawCircle(color = Color(0xFF111111), radius = radius * 0.04f)
+            // Reflejo que gira con el disco
+            drawCircle(
+                brush = Brush.sweepGradient(
+                    0f to Color.Transparent,
+                    0.12f to Color.White.copy(alpha = 0.12f),
+                    0.25f to Color.Transparent,
+                    0.62f to Color.White.copy(alpha = 0.08f),
+                    0.75f to Color.Transparent,
+                    1f to Color.Transparent
+                ),
+                radius = r
+            )
+
+            // Etiqueta central con el título
+            drawCircle(color = Color(0xFFC62828), radius = r * 0.33f)
+            drawCircle(
+                color = Color(0xFF8E1B1B),
+                radius = r * 0.33f,
+                style = Stroke(width = r * 0.01f)
+            )
+
+            val paint = Paint().apply {
+                color = android.graphics.Color.WHITE
+                textSize = r * 0.07f
+                textAlign = Paint.Align.CENTER
+                isAntiAlias = true
+                isFakeBoldText = true
+            }
+            val textY = center.y - (paint.descent() + paint.ascent()) / 2f
+            drawContext.canvas.nativeCanvas.drawText(label.take(16), center.x, textY, paint)
+
+            // Agujero central
+            drawCircle(color = Color(0xFF888888), radius = r * 0.045f)
+            drawCircle(color = Color.Black, radius = r * 0.03f)
         }
 
-        // Brazo
+        // Brazo (no gira con el disco)
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
@@ -96,44 +135,39 @@ fun VinylPlayer(
         ) {
             val w = size.width
             val pivot = Offset(w * 0.85f, w * 0.1f)
+            val tip = Offset(w * 0.55f, w * 0.5f)
+            val needle = Offset(w * 0.515f, w * 0.575f)
 
-            drawCircle(color = Color(0xFF888888), radius = w * 0.05f, center = pivot)
+            // Base del brazo
+            drawCircle(color = Color(0xFF2B2B2B), radius = w * 0.075f, center = pivot)
+            drawCircle(color = Color(0xFF9E9E9E), radius = w * 0.05f, center = pivot)
+            drawCircle(color = Color(0xFF555555), radius = w * 0.012f, center = pivot)
 
+            // Tubo
             drawLine(
-                color = Color(0xFFBBBBBB),
+                color = Color(0xFFCFCFCF),
                 start = pivot,
-                end = Offset(w * 0.55f, w * 0.5f),
-                strokeWidth = w * 0.025f,
+                end = tip,
+                strokeWidth = w * 0.02f,
                 cap = StrokeCap.Round
             )
 
+            // Cabeza
             drawLine(
-                color = Color(0xFF444444),
-                start = Offset(w * 0.55f, w * 0.5f),
+                color = Color(0xFF3A3A3A),
+                start = tip,
                 end = Offset(w * 0.52f, w * 0.56f),
-                strokeWidth = w * 0.04f,
+                strokeWidth = w * 0.045f,
                 cap = StrokeCap.Round
             )
-        }
-    }
-}
 
-@Composable
-fun PlayerScreen() {
-    var isPlaying by remember { mutableStateOf(false) }
-
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        VinylPlayer(
-            isPlaying = isPlaying,
-            modifier = Modifier.fillMaxWidth(0.8f)
-        )
-        Spacer(Modifier.height(32.dp))
-        Button(onClick = { isPlaying = !isPlaying }) {
-            Text(if (isPlaying) "Pausar" else "Reproducir")
+            // Aguja
+            drawLine(
+                color = Color(0xFFB0B0B0),
+                start = Offset(w * 0.52f, w * 0.56f),
+                end = needle,
+                strokeWidth = w * 0.008f
+            )
         }
     }
 }
