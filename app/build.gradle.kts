@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.tuusuario.vinyl"
+    namespace = "com.peperey.vinyl"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.tuusuario.vinyl"
+        applicationId = "com.peperey.vinyl"
         minSdk = 24
         targetSdk = 35
         versionCode = 1

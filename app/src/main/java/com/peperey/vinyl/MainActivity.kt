@@ -1,4 +1,4 @@
-package com.tuusuario.vinyl
+package com.peperey.vinyl
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
